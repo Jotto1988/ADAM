@@ -1,4 +1,5 @@
 name: Deploy ADAM
+
 on:
   push:
     branches: [ main ]
@@ -7,22 +8,29 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # ← THIS FIXES THE 403 — gives GITHUB_TOKEN push rights
+      contents: write
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Inject keys from .env
+      - name: Inject keys from .env into index.html
         run: |
-          while IFS='=' read -r key value || [[ -n "$key" ]]; do
-            [[ "$key" =~ ^[A-Z_]+$ ]] || continue
-            [[ "$key" =~ ^# ]] && continue
-            sed -i "s|<%= ${key} %>|${value}|g" index.html
-          done < .env
+          if [ -f .env ]; then
+            while IFS='=' read -r key value; do
+              key=$(echo "$key" | xargs)
+              value=$(echo "$value" | xargs)
+              [[ -z "$key || "$key" =~ ^# ]] && continue
+              echo "Injecting $key"
+              sed -i "s|<%= ${key} %>|${value}|g" index.html
+            done < .env
+          else
+            echo ".env not found – skipping injection"
+          fi
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages  # Standard branch for Pages
+          publish_branch: gh-pages
           publish_dir: .
           force_orphan: true
