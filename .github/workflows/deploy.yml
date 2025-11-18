@@ -9,12 +9,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Inject secrets
+      - name: Inject keys from .env
         run: |
-          sed -i "s|<%= GROK_API_KEY %>|${{ secrets.GROK_API_KEY }}|g" index.html
+          while IFS='=' read -r key value || [[ -n "$key" ]]; do
+            [[ "$key" =~ ^[A-Z_]+$ ]] || continue
+            [[ "$key" =~ ^# ]] && continue
+            sed -i "s|<%= ${key} %>|${value}|g" index.html
+          done < .env
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: github-pages   # ← THIS IS THE FIX
           publish_dir: .
+          force_orphan: true
