@@ -1,5 +1,4 @@
 name: Deploy ADAM
-
 on:
   push:
     branches: [ main ]
@@ -13,19 +12,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Inject keys from .env into index.html
+      - name: Inject API keys into index.html
         run: |
+          # Use GitHub secrets first, fall back to .env
+          GROK_KEY="${{ secrets.GROK_API_KEY }}"
+          ELEVEN_KEY="${{ secrets.ELEVENLABS_API_KEY }}"
+
+          # If .env exists and has values, override
           if [ -f .env ]; then
-            while IFS='=' read -r key value; do
-              key=$(echo "$key" | xargs)
-              value=$(echo "$value" | xargs)
-              [[ -z "$key || "$key" =~ ^# ]] && continue
-              echo "Injecting $key"
-              sed -i "s|<%= ${key} %>|${value}|g" index.html
-            done < .env
-          else
-            echo ".env not found – skipping injection"
+            export $(grep -v '^#' .env | xargs)
+            GROK_KEY="${GROK_API_KEY:-$GROK_KEY}"
+            ELEVEN_KEY="${ELEVENLABS_API_KEY:-$ELEVEN_KEY}"
           fi
+
+          sed -i "s|<%= GROK_API_KEY %>|$GROK_KEY|g" index.html
+          sed -i "s|<%= ELEVENLABS_API_KEY %>|$ELEVEN_KEY|g" index.html
+          echo "Keys injected successfully"
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
