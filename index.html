@@ -28,7 +28,9 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
   <script>
-    const GROK_KEY = "<%= GROK_API_KEY %>";  // injected securely via workflow
+    // BOTH KEYS ARE INJECTED FROM .env BY THE WORKFLOW
+    const GROK_KEY   = "<%= GROK_API_KEY %>";
+    const ELEVEN_KEY = "<%= ELEVENLABS_API_KEY %>";
 
     async function loadSoul() {
       const enc = await fetch('personality.enc').then(r => r.text());
@@ -57,7 +59,7 @@
           stream: true,
           messages: [
             { role: "system", content: SOUL },
-            { role: "user", content: prompt }
+            { role: "user",  content: prompt }
           ]
         })
       });
@@ -72,8 +74,8 @@
           const json = line.slice(6);
           if (json === "[DONE]") return;
           try {
-            const delta = JSON.parse(json).choices[0]?.delta?.content;
-            if (delta) document.getElementById('response').lastChild.innerHTML += delta.replace(/\n/g, "<br>");
+            const delta = JSON.parse(json).choices[0]?.delta?.content || "";
+            document.getElementById('response').lastChild.innerHTML += delta.replace(/\n/g, "<br>");
           } catch {}
         });
       }
