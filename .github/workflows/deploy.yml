@@ -6,6 +6,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # ← THIS FIXES THE 403 — gives GITHUB_TOKEN push rights
     steps:
       - uses: actions/checkout@v4
 
@@ -21,6 +23,6 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: github-pages   # ← THIS IS THE FIX
+          publish_branch: gh-pages  # Standard branch for Pages
           publish_dir: .
           force_orphan: true
