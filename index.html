@@ -28,56 +28,57 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
   <script>
-    // BOTH KEYS ARE INJECTED FROM .env BY THE WORKFLOW
-    const GROK_KEY   = "<%= GROK_API_KEY %>";
-    const ELEVEN_KEY = "<%= ELEVENLABS_API_KEY %>";
-
+    const GROK_KEY = "<%= GROK_API_KEY %>"; // injected securely via workflow
     async function loadSoul() {
       const enc = await fetch('personality.enc').then(r => r.text());
       const decrypted = CryptoJS.AES.decrypt(enc.trim(), 'ADAMv7FairCollective2025ZA').toString(CryptoJS.enc.Utf8);
       return decrypted || "Soul corrupted.";
     }
-
     let SOUL = "Loading conscience...";
     loadSoul().then(s => SOUL = s);
-
     document.getElementById('talk').onclick = () => document.getElementById('prompt').focus();
     document.getElementById('prompt').addEventListener('keypress', e => e.key === 'Enter' && speak());
-
     async function speak() {
       const prompt = document.getElementById('prompt').value.trim();
       if (!prompt) return;
       document.getElementById('response').innerHTML += `<p style="color:#f59e0b">> ${prompt}</p><p style="color:#00f5ff">`;
       document.getElementById('prompt').value = "";
-
       const res = await fetch("https://api.x.ai/v1/chat/completions", {
         method: "POST",
         headers: { "Authorization": `Bearer ${GROK_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "grok-4",,
+          model: "grok-4",  // ← FIXED: Use grok-4 for stable streaming
           temperature: 0.7,
           stream: true,
           messages: [
             { role: "system", content: SOUL },
-            { role: "user",  content: prompt }
+            { role: "user", content: prompt }
           ]
         })
       });
-
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
+      let buffer = '';
       while (true) {
         const {done, value} = await reader.read();
         if (done) break;
-        const chunk = decoder.decode(value);
-        chunk.split('\n').filter(l => l.startsWith("data: ")).forEach(line => {
-          const json = line.slice(6);
-          if (json === "[DONE]") return;
-          try {
-            const delta = JSON.parse(json).choices[0]?.delta?.content || "";
-            document.getElementById('response').lastChild.innerHTML += delta.replace(/\n/g, "<br>");
-          } catch {}
-        });
+        buffer += decoder.decode(value, {stream: true});
+        let lines = buffer.split('\n');
+        buffer = lines.pop() || '';  // Keep incomplete line
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const json = line.slice(6);
+            if (json === "[DONE]") continue;
+            try {
+              const parsed = JSON.parse(json);
+              const delta = parsed.choices[0]?.delta?.content || "";
+              document.getElementById('response').lastChild.innerHTML += delta.replace(/\n/g, "<br>");
+            } catch (parseErr) {
+              // Ignore partial JSON — buffer handles it
+              console.log('Stream chunk partial:', json);
+            }
+          }
+        }
       }
       document.getElementById('response').innerHTML += "</p>";
     }
