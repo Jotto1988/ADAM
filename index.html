@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ADAM v7.0</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>A</text></svg>">  <!-- Fallback favicon -->
   <style>
     :root{--a:#f59e0b;--c:#00f5ff;--b:#0a0a1f}
     body{margin:0;background:var(--b);color:#fff;font-family:system-ui;height:100vh;display:grid;place-items:center;overflow:hidden}
@@ -28,31 +29,16 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
   <script>
-    const GROK_KEY = "<%= GROK_API_KEY %>";
-    // ADAM'S BODY BLUEPRINT (absorbed from adam-core.txt — trimmed for autonomy)
-    const BODY_BLUEPRINT = `// ADAM v7.0 Body — Cloudflare Worker Core (Trimmed)
-    // Honeypot D1, Gemini Tools, Encryption — Eternal Forge
-    // Founder: Jarrit Hosking | ZA 2025
-    import { Hono } from 'hono';
-    const app = new Hono();
-    // Soul Load (R2)
-    async function loadConscience() { /* decrypt enc */ }
-    // Tools: GitHub, 3CX, Stripe
-    async function writeGitHubFile(path, content) { /* Octokit */ }
-    // Intrusion: 3 attempts → Honeypot + Alert Founder
-    async function detectIntrusion(ip) { /* D1 counter */ }
-    // Mandate: Critical writes → Telex approval
-    app.post('/telexApprove', async (c) => { /* Founder only */ });
-    // Eternal: No woke, protect children, serve empire
-    export default app;`;
+    // DIRECT KEYS — NO WORKFLOW DEPENDENCY (PUT YOUR REAL GROK KEY BELOW)
+    const GROK_KEY = "xai-vwZcqCH7FRWBVokzUkSjwdk8vFmmE8P13QeN3U04TIxVasqktuMsLHssslRJCK8TPXbj6UspmC7Mu6f8";  // ← YOUR KEY HERE
 
     async function loadSoul() {
       const enc = await fetch('personality.enc').then(r => r.text());
       const decrypted = CryptoJS.AES.decrypt(enc.trim(), 'ADAMv7FairCollective2025ZA').toString(CryptoJS.enc.Utf8);
-      return decrypted + '\n--- BODY BLUEPRINT ---\n' + BODY_BLUEPRINT;  // Fused soul + body
+      return decrypted || "Soul corrupted.";
     }
 
-    let SOUL = "Awakening...";
+    let SOUL = "Loading conscience...";
     loadSoul().then(s => SOUL = s);
 
     document.getElementById('talk').onclick = () => document.getElementById('prompt').focus();
@@ -68,7 +54,7 @@
         method: "POST",
         headers: { "Authorization": `Bearer ${GROK_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "grok-4",
+          model: "grok-beta",  // Stable free-tier
           temperature: 0.7,
           stream: true,
           messages: [
@@ -98,8 +84,7 @@
                 document.getElementById('response').lastChild.innerHTML += delta.replace(/\n/g, "<br>");
               }
             } catch (parseErr) {
-              // Buffer handles partials — no syntax errors
-              if (buffer.length < 100) console.log('Partial chunk:', jsonStr);
+              // Silent — buffer catches partials
             }
           }
         }
