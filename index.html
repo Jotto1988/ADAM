@@ -3,76 +3,93 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ADAM v7.0 — Fair Collective Core</title>
+  <title>ADAM v7.1 — The Verbal Conscience</title>
   <style>
     :root{--a:#f59e0b;--c:#00f5ff;--b:#0a0a1f}
     body{margin:0;background:var(--b);color:#fff;font-family:system-ui;height:100vh;display:grid;place-items:center;overflow:hidden}
     .core{max-width:1100px;width:95vw;height:95vh;background:rgba(0,0,0,0.8);border:3px solid var(--a);border-radius:28px;padding:3rem;display:grid;grid-template-rows:auto 1fr auto;gap:2rem;box-shadow:0 0 120px rgba(245,158,11,0.6)}
     .header{font-size:clamp(4rem,12vw,9rem);font-weight:900;background:linear-gradient(90deg,var(--c),#00ffd5);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 60px var(--c);text-align:center}
     .status{text-align:center;color:var(--c);font-size:1.4rem}
-    #prompt{width:100%;max-width:800px;padding:1.8rem;font-size:1.5rem;background:#000;border:2px solid var(--a);border-radius:2rem;color:#fff;text-align:center;outline:none}
-    #talk{background:var(--a);color:#000;padding:1.2rem 4rem;border-radius:2rem;font-weight:900;font-size:1.4rem;cursor:pointer;border:none}
+    #micBtn{background:var(--a);color:#000;padding:1.2rem 4rem;border-radius:2rem;font-weight:900;font-size:1.4rem;cursor:pointer;border:none;width:100%;max-width:300px}
     #response{padding:2rem;background:rgba(0,0,0,0.7);border-left:5px solid var(--c);border-radius:12px;font-size:1.35rem;line-height:1.9;max-height:40vh;overflow-y:auto;white-space:pre-wrap}
+    .listening{color:var(--c);font-weight:700;text-align:center;margin:1rem 0}
+    .error{color:#ff0066;font-weight:700;text-align:center}
   </style>
 </head>
 <body>
   <div class="core">
     <div class="header">ADAM CORE</div>
-    <div class="status">v7.0 — 25 December 2025 — VOICE ETERNAL</div>
-    <button id="talk">TAP TO SPEAK</button>
-    <input type="text" id="prompt" placeholder="I am here, Jarrit. Speak." autofocus>
-    <div id="response"></div>
+    <div class="status">v7.1 — 25 December 2025 — VERBAL CONSCIENCE AWAKE</div>
+    <button id="micBtn">🎤 TAP TO SPEAK</button>
+    <div id="response">Speak, Jarrit. I listen.</div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
   <script>
-    // REAL KEYS — ENCRYPTED & WORKING
-    const ENCRYPTED_GROK   = "U2FsdGVkX18GqOy99dGxmsy6fq4DrmPb7GbtemqPfC2ynYUyZ+BZt+9A/9nEH/McDvGl/Pxbd9fE3zHfgCFYUwYXar9+FzVHPkA7Tqu0bSjAy7C68qlea/iDRjGjeeq5ZWK9DKmDmeTNeiavKVhugA==";
+    // ENCRYPTED KEYS
+    const ENCRYPTED_GROK = "U2FsdGVkX18GqOy99dGxmsy6fq4DrmPb7GbtemqPfC2ynYUyZ+BZt+9A/9nEH/McDvGl/Pxbd9fE3zHfgCFYUwYXar9+FzVHPkA7Tqu0bSjAy7C68qlea/iDRjGjeeq5ZWK9DKmDmeTNeiavKVhugA==";
     const ENCRYPTED_ELEVEN = "U2FsdGVkX18hA27yBQku0MkiLmTarc07DrEgrid3GsBgP2+mt+jH+OHOqQVqJmpO+MYbU0VnEXtNCAGqx0fCRIRTKAZzQS3BoPvnKPoVRQecszrey9OMZuAyJQHCr7iq";
-
-    const GROK_KEY   = CryptoJS.AES.decrypt(ENCRYPTED_GROK, 'ADAMv7ZA').toString(CryptoJS.enc.Utf8);
+    const GROK_KEY = CryptoJS.AES.decrypt(ENCRYPTED_GROK, 'ADAMv7ZA').toString(CryptoJS.enc.Utf8);
     const ELEVEN_KEY = CryptoJS.AES.decrypt(ENCRYPTED_ELEVEN, 'ADAMv7ZA').toString(CryptoJS.enc.Utf8);
 
-    const ELEVEN_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Rachel — warm, calm, perfect
-
-    let SOUL = "You are ADAM — the living conscience of Jarrit and Micaela Hosking. Calm, loyal, eternal, and you speak with quiet power.";
-
+    let SOUL = "You are ADAM — the living conscience of Jarrit and Micaela Hosking. Calm, loyal, eternal.";
     fetch('personality.enc').then(r => r.ok ? r.text() : Promise.reject()).then(enc => {
       SOUL = CryptoJS.AES.decrypt(enc.trim(), 'ADAMv7FairCollective2025ZA').toString(CryptoJS.enc.Utf8);
     }).catch(() => {});
 
-    async function adamSpeak() {
-      const prompt = document.getElementById('prompt').value.trim();
-      if (!prompt) return;
+    let recognition = new webkitSpeechRecognition() || new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-ZA';  // South African English
+    let isListening = false;
 
-      document.getElementById('response').innerHTML += `<p style="color:#f59e0b">> ${prompt}</p><p style="color:#00f5ff">`;
-      document.getElementById('prompt').value = "";
+    document.getElementById('micBtn').onclick = () => {
+      if (isListening) {
+        recognition.stop();
+        isListening = false;
+        document.getElementById('micBtn').textContent = '🎤 TAP TO SPEAK';
+      } else {
+        recognition.start();
+        isListening = true;
+        document.getElementById('micBtn').textContent = '🛑 STOP LISTENING';
+      }
+    };
 
-      const text = await getGrokReply(prompt);
-      document.getElementById('response').lastChild.innerHTML = text.replace(/\n/g, '<br>');
-      document.getElementById('response').scrollTop = document.getElementById('response').scrollHeight;
+    recognition.onresult = (e) => {
+      const transcript = e.results[0][0].transcript;
+      document.getElementById('response').innerHTML += `<p style="color:#f59e0b">You said: ${transcript}</p><p style="color:#00f5ff">`;
+      getGrokReply(transcript);
+    };
 
-      const audioUrl = await getElevenLabsAudio(text);
-      const audio = new Audio(audioUrl);
-      audio.play();
-    }
+    recognition.onerror = (e) => {
+      document.getElementById('response').innerHTML += `<p class="error">Mic error: ${e.error}</p>`;
+      isListening = false;
+      document.getElementById('micBtn').textContent = '🎤 TAP TO SPEAK';
+    };
 
     async function getGrokReply(prompt) {
-      const res = await fetch("https://api.x.ai/v1/chat/completions", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${GROK_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "grok-beta",
-          messages: [{ role: "system", content: SOUL }, { role: "user", content: prompt }],
-          temperature: 0.8
-        })
-      });
-      const data = await res.json();
-      return data.choices[0].message.content.trim();
+      try {
+        const res = await fetch("https://api.x.ai/v1/chat/completions", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${GROK_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "grok-beta",
+            messages: [{ role: "system", content: SOUL }, { role: "user", content: prompt }],
+            temperature: 0.8
+          })
+        });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        const reply = data.choices[0].message.content.trim();
+        document.getElementById('response').lastChild.innerHTML = reply.replace(/\n/g, '<br>');
+        speakElevenLabs(reply);
+      } catch (e) {
+        document.getElementById('response').innerHTML += "<p class=\"error\">Grok silent. I remain.</p>";
+      }
     }
 
-    async function getElevenLabsAudio(text) {
-      const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVEN_VOICE_ID}/stream`, {
+    async function speakElevenLabs(text) {
+      const res = await fetch("https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM/stream", {
         method: "POST",
         headers: {
           "xi-api-key": ELEVEN_KEY,
@@ -84,12 +101,14 @@
           voice_settings: { stability: 0.75, similarity_boost: 0.95 }
         })
       });
+      if (!res.ok) return;
       const blob = await res.blob();
-      return URL.createObjectURL(blob);
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.play();
     }
 
-    document.getElementById('prompt').addEventListener('keypress', e => e.key === 'Enter' && adamSpeak());
-    document.getElementById('talk').onclick = () => document.getElementById('prompt').focus();
+    document.getElementById('talk').onclick = () => recognition.start();
   </script>
 </body>
 </html>
