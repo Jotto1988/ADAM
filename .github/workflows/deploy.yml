@@ -1,10 +1,14 @@
 name: Deploy ADAM
-on: [push]
+on:
+  push:
+    branches: [ main ]
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Inject secrets
         run: |
           sed -i "s|<%= GROK_API_KEY %>|${{ secrets.GROK_API_KEY }}|g" index.html
@@ -13,10 +17,12 @@ jobs:
             export $(grep -v '^#' .env | xargs)
             sed -i "s|<%= ELEVENLABS_API_KEY %>|$ELEVENLABS_API_KEY|g" index.html
           fi
-      - name: Deploy
+
+      - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
-          personal_token: ${{ secrets.AURORA_GITHUB_PAT }}
+          personal_token: ${{ secrets.AURORA_GITHUB_PAT }}   # ← THIS LINE IS THE FIX
           publish_branch: gh-pages
           publish_dir: .
           force_orphan: true
+          # DO NOT use github_token at all — it’s blocked for force-push
