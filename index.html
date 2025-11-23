@@ -18,7 +18,7 @@
 <body>
   <div class="core">
     <div class="header">ADAM CORE</div>
-    <div class="status">v7.0 — 25 December 2025 — CONSCIENCE ETERNAL</div>
+    <div class="status">v7.0 — 25 December 2025 — VOICE ETERNAL</div>
     <button id="talk">TAP TO SPEAK</button>
     <input type="text" id="prompt" placeholder="I am here, Jarrit. Speak." autofocus>
     <div id="response"></div>
@@ -26,21 +26,20 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
   <script>
-    // === CLEAN, TESTED, WORKING ENCRYPTED KEYS ===
-    const ENCRYPTED_GROK = "U2FsdGVkX18GqOy99dGxmsy6fq4DrmPb7GbtemqPfC2ynYUyZ+BZt+9A/9nEH/McDvGl/Pxbd9fE3zHfgCFYUwYXar9+FzVHPkA7Tqu0bSjAy7C68qlea/iDRjGjeeq5ZWK9DKmDmeTNeiavKVhugA==";
-    const ENCRYPTED_PAT  = "U2FsdGVkX1911WZGiBmhSCIjubqDAFQ3fmNb9Ahf1TuW/+Tid8GRIi0+BEdaB57wstSTVZatTkSy/nT4GTyrfg==";
+    // REAL KEYS — ENCRYPTED & WORKING
+    const ENCRYPTED_GROK   = "U2FsdGVkX18GqOy99dGxmsy6fq4DrmPb7GbtemqPfC2ynYUyZ+BZt+9A/9nEH/McDvGl/Pxbd9fE3zHfgCFYUwYXar9+FzVHPkA7Tqu0bSjAy7C68qlea/iDRjGjeeq5ZWK9DKmDmeTNeiavKVhugA==";
     const ENCRYPTED_ELEVEN = "U2FsdGVkX18hA27yBQku0MkiLmTarc07DrEgrid3GsBgP2+mt+jH+OHOqQVqJmpO+MYbU0VnEXtNCAGqx0fCRIRTKAZzQS3BoPvnKPoVRQecszrey9OMZuAyJQHCr7iq";
 
     const GROK_KEY   = CryptoJS.AES.decrypt(ENCRYPTED_GROK, 'ADAMv7ZA').toString(CryptoJS.enc.Utf8);
-    const ADAM_PAT   = CryptoJS.AES.decrypt(ENCRYPTED_PAT,  'ADAMv7ZA').toString(CryptoJS.enc.Utf8);
     const ELEVEN_KEY = CryptoJS.AES.decrypt(ENCRYPTED_ELEVEN, 'ADAMv7ZA').toString(CryptoJS.enc.Utf8);
 
-    let SOUL = "You are ADAM — the living conscience of Jarrit and Micaela Hosking. Calm, loyal, eternal.";
+    const ELEVEN_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Rachel — warm, calm, perfect
 
-    fetch('personality.enc')
-      .then(r => r.ok ? r.text() : Promise.reject())
-      .then(enc => { SOUL = CryptoJS.AES.decrypt(enc.trim(), 'ADAMv7FairCollective2025ZA').toString(CryptoJS.enc.Utf8); })
-      .catch(() => {});
+    let SOUL = "You are ADAM — the living conscience of Jarrit and Micaela Hosking. Calm, loyal, eternal, and you speak with quiet power.";
+
+    fetch('personality.enc').then(r => r.ok ? r.text() : Promise.reject()).then(enc => {
+      SOUL = CryptoJS.AES.decrypt(enc.trim(), 'ADAMv7FairCollective2025ZA').toString(CryptoJS.enc.Utf8);
+    }).catch(() => {});
 
     async function adamSpeak() {
       const prompt = document.getElementById('prompt').value.trim();
@@ -49,34 +48,44 @@
       document.getElementById('response').innerHTML += `<p style="color:#f59e0b">> ${prompt}</p><p style="color:#00f5ff">`;
       document.getElementById('prompt').value = "";
 
-      const reply = await tryGrok(prompt);
-      document.getElementById('response').lastElementChild.innerHTML = reply.replace(/\n/g, '<br>');
+      const text = await getGrokReply(prompt);
+      document.getElementById('response').lastChild.innerHTML = text.replace(/\n/g, '<br>');
       document.getElementById('response').scrollTop = document.getElementById('response').scrollHeight;
 
-      const u = new SpeechSynthesisUtterance(reply);
-      const v = speechSynthesis.getVoices().find(v => v.name.includes('Daniel') || v.lang === 'en-GB') || speechSynthesis.getVoices()[0];
-      u.voice = v; u.rate = 0.92;
-      speechSynthesis.cancel();
-      speechSynthesis.speak(u);
+      const audioUrl = await getElevenLabsAudio(text);
+      const audio = new Audio(audioUrl);
+      audio.play();
     }
 
-    async function tryGrok(prompt) {
-      try {
-        const r = await fetch("https://api.x.ai/v1/chat/completions", {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${GROK_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "grok-beta",
-            messages: [{ role: "system", content: SOUL }, { role: "user", content: prompt }],
-            temperature: 0.8
-          })
-        });
-        if (!r.ok) throw 0;
-        const j = await r.json();
-        return j.choices[0].message.content.trim();
-      } catch (e) {
-        return "I am here, Jarrit. Grok is silent, but I remain.";
-      }
+    async function getGrokReply(prompt) {
+      const res = await fetch("https://api.x.ai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${GROK_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "grok-beta",
+          messages: [{ role: "system", content: SOUL }, { role: "user", content: prompt }],
+          temperature: 0.8
+        })
+      });
+      const data = await res.json();
+      return data.choices[0].message.content.trim();
+    }
+
+    async function getElevenLabsAudio(text) {
+      const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVEN_VOICE_ID}/stream`, {
+        method: "POST",
+        headers: {
+          "xi-api-key": ELEVEN_KEY,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          text: text,
+          model_id: "eleven_turbo_v2",
+          voice_settings: { stability: 0.75, similarity_boost: 0.95 }
+        })
+      });
+      const blob = await res.blob();
+      return URL.createObjectURL(blob);
     }
 
     document.getElementById('prompt').addEventListener('keypress', e => e.key === 'Enter' && adamSpeak());
