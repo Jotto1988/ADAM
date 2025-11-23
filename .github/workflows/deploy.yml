@@ -13,6 +13,7 @@ jobs:
         run: |
           sed -i "s|<%= GROK_API_KEY %>|${{ secrets.GROK_API_KEY }}|g" index.html
           sed -i "s|<%= GEMINI_API_KEY %>|${{ secrets.GEMINI_API_KEY }}|g" index.html
+          sed -i "s|<%= ADAM_PAT %>|${{ secrets.ADAM_PAT }}|g" index.html
           if [ -f .env ]; then
             export $(grep -v '^#' .env | xargs)
             sed -i "s|<%= ELEVENLABS_API_KEY %>|$ELEVENLABS_API_KEY|g" index.html
@@ -21,8 +22,7 @@ jobs:
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
-          personal_token: ${{ secrets.AURORA_GITHUB_PAT }}   # ← THIS LINE IS THE FIX
+          personal_token: ${{ secrets.AURORA_GITHUB_PAT }}
           publish_branch: gh-pages
           publish_dir: .
           force_orphan: true
-          # DO NOT use github_token at all — it’s blocked for force-push
