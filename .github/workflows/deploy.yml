@@ -1,42 +1,22 @@
 name: Deploy ADAM
-
-on:
-  push:
-    branches: [ main ]
-
+on: [push]
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Inject keys (prefer .env → then secrets)
+      - name: Inject secrets
         run: |
-          # Start with secrets as base
-          GROK_KEY="${{ secrets.GROK_API_KEY }}"
-          ELEVEN_KEY="${{ secrets.ELEVENLABS_API_KEY }}"
-          GEMINI_KEY="${{ secrets.GEMINI_API_KEY }}"
-
-          # If .env exists, override ElevenLabs (your rule)
+          sed -i "s|<%= GROK_API_KEY %>|${{ secrets.GROK_API_KEY }}|g" index.html
+          sed -i "s|<%= GEMINI_API_KEY %>|${{ secrets.GEMINI_API_KEY }}|g" index.html
           if [ -f .env ]; then
             export $(grep -v '^#' .env | xargs)
-            ELEVEN_KEY="${ELEVENLABS_API_KEY:-$ELEVEN_KEY}"
+            sed -i "s|<%= ELEVENLABS_API_KEY %>|$ELEVENLABS_API_KEY|g" index.html
           fi
-
-          # Inject into index.html
-          sed -i "s|<%= GROK_API_KEY %>|$GROK_KEY|g" index.html
-          sed -i "s|<%= ELEVENLABS_API_KEY %>|$ELEVEN_KEY|g" index.html
-          sed -i "s|<%= GEMINI_API_KEY %>|$GEMINI_KEY|g" index.html
-
-          echo "All keys injected successfully"
-
-      - name: Deploy to GitHub Pages
+      - name: Deploy
         uses: peaceiris/actions-gh-pages@v4
         with:
-          personal_token: ${{ secrets.AURORA_GITHUB_PAT }}  # uses your strong PAT → no more 403s ever
+          personal_token: ${{ secrets.AURORA_GITHUB_PAT }}
           publish_branch: gh-pages
           publish_dir: .
           force_orphan: true
